@@ -20,17 +20,17 @@ extension HttpMethod {
 
 
 struct Resource<A> {
-    let url: NSURL
+    let url: URL
     let method: HttpMethod
-    let parse: (NSData) -> A?
+    let parse: (Data) -> A?
 }
 
 extension Resource {
-    init(url: NSURL, parseJSON: (AnyObject) -> A?) {
+    init(url: URL, parseJSON: (AnyObject) -> A?) {
         self.url = url
         self.method = .get
         self.parse = { data in
-            let json = try? NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions())
+            let json = try? JSONSerialization.jsonObject(with: data as Data, options: JSONSerialization.ReadingOptions())
             return json.flatMap(parseJSON)
         }
     }
@@ -38,9 +38,9 @@ extension Resource {
 
 
 func pushNotification(token: String) -> Resource<Bool> {
-    let url = NSURL(string: "")!
+    let url = URL(string: "")!
     let dictionary = ["token": token]
-    let bodyData = try! NSJSONSerialization.dataWithJSONObject(dictionary, options: [])
+    let bodyData = try! JSONSerialization.data(withJSONObject: dictionary, options: [])
     return Resource(url: url, method: .post(bodyData), parse: { _ in
         return true
     })
@@ -48,8 +48,8 @@ func pushNotification(token: String) -> Resource<Bool> {
 
 
 final class Webservice {
-    func load<A>(resource: Resource<A>, completion: A? -> ()) {
-        NSURLSession.sharedSession().dataTaskWithURL(resource.url) { data, _, _ in
+    func load<A>(resource: Resource<A>, completion: (A?) -> ()) {
+        URLSession.shared.dataTask(with: resource.url as URL) { data, _, _ in
             completion(data.flatMap(resource.parse))
             }.resume()
     }

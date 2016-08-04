@@ -20,31 +20,31 @@ extension HttpMethod {
 
 
 struct Resource<A> {
-    let url: NSURL
-    let method: HttpMethod<NSData>
-    let parse: (NSData) -> A?
+    let url: URL
+    let method: HttpMethod<Data>
+    let parse: (Data) -> A?
 }
 
 extension Resource {
-    init(url: NSURL, method: HttpMethod<AnyObject> = .get, parseJSON: (AnyObject) -> A?) {
+    init(url: URL, method: HttpMethod<AnyObject> = .get, parseJSON: (AnyObject) -> A?) {
         self.url = url
         switch method {
         case .get:
             self.method = .get
         case .post(let json):
-            let bodyData = try! NSJSONSerialization.dataWithJSONObject(json, options: [])
+            let bodyData = try! JSONSerialization.data(withJSONObject: json, options: [])
             self.method = .post(bodyData)
         }
         self.parse = { data in
-            let json = try? NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions())
+            let json = try? JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions())
             return json.flatMap(parseJSON)
         }
     }
 }
 
 
-func pushNotification(token: String) -> Resource<Bool> {
-    let url = NSURL(string: "")!
+func pushNotification(_ token: String) -> Resource<Bool> {
+    let url = URL(string: "")!
     let dictionary = ["token": token]
     return Resource(url: url, method: .post(dictionary), parseJSON: { _ in
         return true
@@ -53,8 +53,8 @@ func pushNotification(token: String) -> Resource<Bool> {
 
 
 final class Webservice {
-    func load<A>(resource: Resource<A>, completion: A? -> ()) {
-        NSURLSession.sharedSession().dataTaskWithURL(resource.url) { data, _, _ in
+    func load<A>(_ resource: Resource<A>, completion: (A?) -> ()) {
+        URLSession.shared.dataTask(with: resource.url) { data, _, _ in
             completion(data.flatMap(resource.parse))
             }.resume()
     }

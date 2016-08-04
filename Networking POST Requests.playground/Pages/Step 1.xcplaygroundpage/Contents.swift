@@ -12,8 +12,8 @@ enum HttpMethod: String {
 struct Resource<A> {
     let url: NSURL
     let method: HttpMethod
-    let body: NSData?
-    let parse: (NSData) -> A?
+    let body: Data?
+    let parse: (Data) -> A?
 }
 
 //extension Resource {
@@ -28,8 +28,8 @@ struct Resource<A> {
 
 
 final class Webservice {
-    func load<A>(resource: Resource<A>, completion: A? -> ()) {
-        NSURLSession.sharedSession().dataTaskWithURL(resource.url) { data, _, _ in
+    func load<A>(resource: Resource<A>, completion: (A?) -> ()) {
+        URLSession.shared.dataTask(with: resource.url as URL) { data, _, _ in
             completion(data.flatMap(resource.parse))
             }.resume()
     }

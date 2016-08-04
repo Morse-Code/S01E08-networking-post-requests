@@ -17,7 +17,7 @@ extension HttpMethod {
         }
     }
     
-    func map<B>(f: (Body) -> B) -> HttpMethod<B> {
+    func map<B>(_ f: (Body) -> B) -> HttpMethod<B> {
         switch self {
         case .get:
             return .get
@@ -29,27 +29,27 @@ extension HttpMethod {
 
 
 struct Resource<A> {
-    let url: NSURL
-    let method: HttpMethod<NSData>
-    let parse: (NSData) -> A?
+    let url: URL
+    let method: HttpMethod<Data>
+    let parse: (Data) -> A?
 }
 
 extension Resource {
-    init(url: NSURL, method: HttpMethod<AnyObject> = .get, parseJSON: (AnyObject) -> A?) {
+    init(url: URL, method: HttpMethod<AnyObject> = .get, parseJSON: (AnyObject) -> A?) {
         self.url = url
         self.method = method.map { json in
-            return try! NSJSONSerialization.dataWithJSONObject(json, options: [])
+            return try! JSONSerialization.data(withJSONObject: json, options: [])
         }
         self.parse = { data in
-            let json = try? NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions())
+            let json = try? JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions())
             return json.flatMap(parseJSON)
         }
     }
 }
 
 
-func pushNotification(token: String) -> Resource<Bool> {
-    let url = NSURL(string: "")!
+func pushNotification(_ token: String) -> Resource<Bool> {
+    let url = URL(string: "")!
     let dictionary = ["token": token]
     return Resource(url: url, method: .post(dictionary), parseJSON: { _ in
         return true
@@ -58,13 +58,13 @@ func pushNotification(token: String) -> Resource<Bool> {
 
 
 final class Webservice {
-    func load<A>(resource: Resource<A>, completion: A? -> ()) {
-        let request = NSMutableURLRequest(URL: resource.url)
-        request.HTTPMethod = resource.method.method
+    func load<A>(_ resource: Resource<A>, completion: (A?) -> ()) {
+        let request = NSMutableURLRequest(url: resource.url)
+        request.httpMethod = resource.method.method
         if case let .post(data) = resource.method {
-            request.HTTPBody = data
+            request.httpBody = data
         }
-        NSURLSession.sharedSession().dataTaskWithRequest(request) { data, _, _ in
+        URLSession.shared.dataTask(with: request as URLRequest) { data, _, _ in
             completion(data.flatMap(resource.parse))
         }.resume()
     }
